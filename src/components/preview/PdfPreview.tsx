@@ -58,7 +58,7 @@ export function PdfPreview({ pdfPath }: PdfPreviewProps) {
     setError(null);
 
     tauri
-      .readTempPdfBase64()
+      .readMainPdfBase64()
       .then((b64) => {
         if (cancelled) return;
         if (requestIdRef.current !== myRequestId) return;

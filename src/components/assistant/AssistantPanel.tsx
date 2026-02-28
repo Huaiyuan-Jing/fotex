@@ -29,6 +29,12 @@ export function AssistantPanel() {
           <span className="assistant-status assistant-status--error">Ollama not running</span>
         )}
         {ollamaReady && (
+          <span className="assistant-status-ready">
+            <span className="assistant-status-dot" aria-hidden />
+            Ollama Ready
+          </span>
+        )}
+        {ollamaReady && (
           <select
             className="assistant-model-select"
             value={ollamaModel}
@@ -74,8 +80,9 @@ export function AssistantPanel() {
             className="assistant-send"
             onClick={handleSend}
             disabled={!ollamaReady || assistantStatus === "thinking" || !input.trim()}
+            title="Send"
           >
-            Send
+            <span aria-hidden>✈</span>
           </button>
         </div>
       </div>

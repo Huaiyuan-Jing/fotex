@@ -18,35 +18,38 @@ export function PdfTabs() {
       <div className="pdf-tabs-header">
         <button
           type="button"
-          className={`pdf-tab ${activePdfTab === "compiled" ? "pdf-tab--active" : ""}`}
-          onClick={() => setActivePdfTab("compiled")}
+          className={`pdf-tab ${activePdfTab === "compiled" && !logOpen ? "pdf-tab--active" : ""}`}
+          onClick={() => { setActivePdfTab("compiled"); setLogOpen(false); }}
         >
-          Compiled PDF
+          Preview
         </button>
         <button
           type="button"
-          className={`pdf-tab ${activePdfTab === "uploaded" ? "pdf-tab--active" : ""}`}
-          onClick={() => setActivePdfTab("uploaded")}
-        >
-          Uploaded PDF
-        </button>
-        <button
-          type="button"
-          className={`pdf-log-toggle ${logOpen ? "pdf-log-toggle--open" : ""}`}
-          onClick={() => setLogOpen((o) => !o)}
+          className={`pdf-tab ${logOpen ? "pdf-tab--active" : ""}`}
+          onClick={() => setLogOpen(true)}
           title="Compile log"
         >
-          Log {compileStatus === "error" && "(error)"}
+          Logs
         </button>
+        {activePdfTab === "uploaded" && (
+          <button
+            type="button"
+            className={`pdf-tab ${activePdfTab === "uploaded" ? "pdf-tab--active" : ""}`}
+            onClick={() => { setActivePdfTab("uploaded"); setLogOpen(false); }}
+          >
+            Uploaded
+          </button>
+        )}
       </div>
       <div className="pdf-tabs-body">
-        <PdfPreview pdfPath={currentPath} />
+        {logOpen ? (
+          <div className="pdf-log-panel pdf-log-panel--full">
+            <pre className="pdf-log-content">{compileLog || "No log yet."}</pre>
+          </div>
+        ) : (
+          <PdfPreview pdfPath={currentPath} />
+        )}
       </div>
-      {logOpen && (
-        <div className="pdf-log-panel">
-          <pre className="pdf-log-content">{compileLog || "No log yet."}</pre>
-        </div>
-      )}
     </div>
   );
 }

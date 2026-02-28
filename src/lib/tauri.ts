@@ -25,21 +25,25 @@ export async function writeTextFile(payload: WriteTextFilePayload): Promise<Writ
   return invoke<WriteTextFileResult>("write_text_file", payload as unknown as Record<string, unknown>);
 }
 
-/** Read temp.tex from src-tauri; used to init the editor. */
-export async function readTempTex(): Promise<string> {
+/** Read main.tex from src-tauri; used to init the editor. */
+export async function readMainTex(): Promise<string> {
   return invoke<string>("read_tex");
 }
 
-/** Read temp.pdf as base64 for embedding (avoids asset protocol). */
-export async function readTempPdfBase64(): Promise<string> {
-  return invoke<string>("read_temp_pdf_base64");
+/** Read main.pdf as base64 for embedding (avoids asset protocol). */
+export async function readMainPdfBase64(): Promise<string> {
+  return invoke<string>("read_main_pdf_base64");
 }
 
 /** Compile LaTeX via lib.rs compile_latex (uses tectonic sidecar). Returns absolute PDF path on success. */
 export async function compileTex(payload: CompileTexPayload): Promise<CompileTexResult> {
   const content = payload.texContent ?? "";
+  const workDir = payload.workdir;
   try {
-    const pdfPath = await invoke<string>("compile_latex", { content });
+    const pdfPath = await invoke<string>("compile_latex", {
+      content,
+      work_dir: workDir ?? null,
+    });
     return { success: true, pdfPath, log: "Compiled successfully." };
   } catch (e) {
     return { success: false, log: String(e) };
@@ -49,6 +53,17 @@ export async function compileTex(payload: CompileTexPayload): Promise<CompileTex
 /** Open file picker; optional filters e.g. [{ name: "PDF", extensions: ["pdf"] }]. */
 export async function pickFile(payload: PickFilePayload = {}): Promise<PickFileResult> {
   return invoke<PickFileResult>("pick_file", payload as unknown as Record<string, unknown>);
+}
+
+/** Read folder tree (name, path, is_dir, children). */
+export interface FileNode {
+  name: string;
+  path: string;
+  is_dir: boolean;
+  children: FileNode[];
+}
+export async function readFolder(path: string): Promise<FileNode> {
+  return invoke<FileNode>("read_folder", { path });
 }
 
 /** Copy a PDF into workspace; returns destination path. */

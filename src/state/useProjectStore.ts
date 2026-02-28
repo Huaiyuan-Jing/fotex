@@ -131,7 +131,7 @@ export const useProjectStore = create<Store>((set, get) => ({
 
   loadTempTex: async () => {
     try {
-      const content = await tauri.readTempTex();
+      const content = await tauri.readMainTex();
       set({ texContent: content, dirty: false });
     } catch {
       set({ texContent: DEFAULT_TEX });
@@ -178,15 +178,13 @@ export const useProjectStore = create<Store>((set, get) => ({
   },
 
   compile: async () => {
-    const { texPath, texContent, workspaceDir } = get();
+    const { texContent, workspaceDir } = get();
     set({ compileStatus: "compiling" });
     try {
-      const payload: Parameters<typeof tauri.compileTex>[0] = workspaceDir
-        ? { workdir: workspaceDir }
-        : {};
-      if (texPath) payload.texPath = texPath;
-      else payload.texContent = texContent;
-      const result = await tauri.compileTex(payload);
+      const result = await tauri.compileTex({
+        texContent,
+        workdir: workspaceDir,
+      });
       set({
         compileStatus: result.success ? "success" : "error",
         compileLog: result.log,
