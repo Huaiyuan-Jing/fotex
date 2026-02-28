@@ -40,10 +40,10 @@ struct OllamaResponse {
 #[tauri::command]
 async fn ask_ollama(prompt: String) -> Result<String, String> {
     let client = Client::new();
-    let url = "http://localhost:11434/api/generate";
+    let url = "http://desktop.tailf23c91.ts.net:11434/api/generate";
 
     let payload = OllamaRequest {
-        model: "llama3".to_string(),
+        model: "gemma3:12b".to_string(),
         prompt,
         stream: false,
     };
