@@ -33,6 +33,18 @@ fn read_temp_tex() -> Result<String, String> {
     }
 }
 
+/// Read temp.pdf as base64 for embedding in the frontend (avoids asset protocol / iframe crash).
+#[tauri::command]
+fn read_temp_pdf_base64() -> Result<String, String> {
+    let dir = src_tauri_dir()?;
+    let path = dir.join("temp.pdf");
+    let bytes = fs::read(&path).map_err(|e| e.to_string())?;
+    Ok(base64::Engine::encode(
+        &base64::engine::general_purpose::STANDARD,
+        &bytes,
+    ))
+}
+
 #[tauri::command]
 async fn compile_latex(app_handle: tauri::AppHandle, content: String) -> Result<String, String> {
     let output_dir = src_tauri_dir()?;
@@ -102,7 +114,7 @@ async fn ask_ollama(prompt: String) -> Result<String, String> {
 pub fn run() {
     tauri::Builder::default()
         .plugin(tauri_plugin_shell::init())
-        .invoke_handler(tauri::generate_handler![read_temp_tex, compile_latex, ask_ollama])
+        .invoke_handler(tauri::generate_handler![read_temp_tex, read_temp_pdf_base64, compile_latex, ask_ollama])
         .run(tauri::generate_context!())
         .expect("error while running tauri application");
 }

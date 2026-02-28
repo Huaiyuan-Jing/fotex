@@ -30,6 +30,11 @@ export async function readTempTex(): Promise<string> {
   return invoke<string>("read_temp_tex");
 }
 
+/** Read temp.pdf as base64 for embedding (avoids asset protocol). */
+export async function readTempPdfBase64(): Promise<string> {
+  return invoke<string>("read_temp_pdf_base64");
+}
+
 /** Compile LaTeX via lib.rs compile_latex (uses tectonic sidecar). Returns absolute PDF path on success. */
 export async function compileTex(payload: CompileTexPayload): Promise<CompileTexResult> {
   const content = payload.texContent ?? "";
