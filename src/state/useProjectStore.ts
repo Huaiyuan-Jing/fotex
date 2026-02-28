@@ -59,6 +59,7 @@ export interface ProjectActions {
   setToast: (message: string | undefined, variant?: "info" | "error" | "success") => void;
 
   loadModels: () => Promise<void>;
+  loadTempTex: () => Promise<void>;
   openFile: () => Promise<void>;
   saveFile: () => Promise<boolean>;
   compile: () => Promise<void>;
@@ -125,6 +126,15 @@ export const useProjectStore = create<Store>((set, get) => ({
       }
     } catch {
       set({ ollamaModels: [], ollamaReady: false, assistantError: "Ollama not running" });
+    }
+  },
+
+  loadTempTex: async () => {
+    try {
+      const content = await tauri.readTempTex();
+      set({ texContent: content, dirty: false });
+    } catch {
+      set({ texContent: DEFAULT_TEX });
     }
   },
 

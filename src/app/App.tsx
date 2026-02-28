@@ -4,10 +4,12 @@ import { useProjectStore } from "../state/useProjectStore";
 
 function App() {
   const loadModels = useProjectStore((s) => s.loadModels);
+  const loadTempTex = useProjectStore((s) => s.loadTempTex);
 
   useEffect(() => {
     loadModels();
-  }, [loadModels]);
+    loadTempTex();
+  }, [loadModels, loadTempTex]);
 
   return <SplitLayout />;
 }

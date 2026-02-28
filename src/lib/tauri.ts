@@ -25,6 +25,11 @@ export async function writeTextFile(payload: WriteTextFilePayload): Promise<Writ
   return invoke<WriteTextFileResult>("write_text_file", payload as unknown as Record<string, unknown>);
 }
 
+/** Read temp.tex from src-tauri; used to init the editor. */
+export async function readTempTex(): Promise<string> {
+  return invoke<string>("read_temp_tex");
+}
+
 /** Compile LaTeX via lib.rs compile_latex (uses tectonic sidecar). Returns absolute PDF path on success. */
 export async function compileTex(payload: CompileTexPayload): Promise<CompileTexResult> {
   const content = payload.texContent ?? "";

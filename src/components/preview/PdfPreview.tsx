@@ -1,4 +1,4 @@
-import { pdfUrl } from "../../lib/paths";
+import { openPath } from "@tauri-apps/plugin-opener";
 
 interface PdfPreviewProps {
   pdfPath: string | undefined;
@@ -12,10 +12,15 @@ export function PdfPreview({ pdfPath }: PdfPreviewProps) {
       </div>
     );
   }
-  const url = pdfUrl(pdfPath);
+  const handleOpenPdf = () => {
+    openPath(pdfPath).catch((e) => console.error("Open PDF failed:", e));
+  };
   return (
-    <div className="pdf-preview">
-      <iframe title="PDF" src={url} className="pdf-iframe" />
+    <div className="pdf-preview pdf-preview--external">
+      <p className="pdf-preview__hint">PDF compiled. Open in system viewer to preview.</p>
+      <button type="button" className="pdf-preview__open-btn" onClick={handleOpenPdf}>
+        Open PDF
+      </button>
     </div>
   );
 }

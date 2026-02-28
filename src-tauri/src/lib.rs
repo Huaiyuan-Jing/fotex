@@ -15,6 +15,24 @@ fn src_tauri_dir() -> Result<PathBuf, String> {
     Ok(output_dir)
 }
 
+const DEFAULT_TEX: &str = r"\documentclass{article}
+\begin{document}
+Hello, LaTeX.
+\end{document}
+";
+
+/// Read temp.tex from src-tauri; returns default content if file does not exist.
+#[tauri::command]
+fn read_temp_tex() -> Result<String, String> {
+    let dir = src_tauri_dir()?;
+    let path = dir.join("temp.tex");
+    match fs::read_to_string(&path) {
+        Ok(s) => Ok(s),
+        Err(e) if e.kind() == std::io::ErrorKind::NotFound => Ok(DEFAULT_TEX.to_string()),
+        Err(e) => Err(e.to_string()),
+    }
+}
+
 #[tauri::command]
 async fn compile_latex(app_handle: tauri::AppHandle, content: String) -> Result<String, String> {
     let output_dir = src_tauri_dir()?;
@@ -84,7 +102,7 @@ async fn ask_ollama(prompt: String) -> Result<String, String> {
 pub fn run() {
     tauri::Builder::default()
         .plugin(tauri_plugin_shell::init())
-        .invoke_handler(tauri::generate_handler![compile_latex, ask_ollama])
+        .invoke_handler(tauri::generate_handler![read_temp_tex, compile_latex, ask_ollama])
         .run(tauri::generate_context!())
         .expect("error while running tauri application");
 }
