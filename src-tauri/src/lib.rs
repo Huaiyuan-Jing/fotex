@@ -163,6 +163,8 @@ fn clean_output(s: &str) -> String {
      .trim()
      .to_string()
 }
+
+#[derive(Serialize)]
 struct FileNode {
     name: String,
     path: String,
