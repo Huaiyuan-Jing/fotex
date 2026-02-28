@@ -7,7 +7,10 @@ use std::path::{Path, PathBuf};
 use tauri_plugin_dialog::DialogExt;
 use tauri_plugin_shell::ShellExt;
 
-/// Use the crate root (src-tauri, where Cargo.toml and src/ live) so main.tex/main.pdf go there.
+const OLLAMA_CHAT: &str = "http://desktop.tailf23c91.ts.net:11434/api/chat";
+const OLLAMA_MODEL: &str = "gemma3:12b";
+
+/// Use the crate root (src-tauri, where Cargo.toml and src/ live) so temp.tex/temp.pdf go there.
 fn src_tauri_dir() -> Result<PathBuf, String> {
     let output_dir = PathBuf::from(env!("CARGO_MANIFEST_DIR"));
     if !output_dir.exists() {
@@ -121,26 +124,50 @@ async fn compile_latex(
     }
 }
 
+
+#[derive(Serialize)]
+struct Message {
+    role: String,
+    content: String,
+}
+
 #[derive(Serialize)]
 struct OllamaRequest {
     model: String,
-    prompt: String,
+    messages: Vec<Message>,  
     stream: bool,
 }
 
 #[derive(Deserialize)]
+struct OllamaMessage {
+    content: String,
+}
+
+#[derive(Deserialize)]
 struct OllamaResponse {
-    response: String,
+    message: OllamaMessage,  
 }
 
 #[tauri::command]
 async fn ask_ollama(prompt: String) -> Result<String, String> {
     let client = Client::new();
-    let url = "http://desktop.tailf23c91.ts.net:11434/api/generate";
+    let url = OLLAMA_CHAT.to_string();
+
+
+    let messages = vec![
+        Message {
+            role: "system".to_string(),
+            content: "You are a LaTeX assistant. Output ONLY raw LaTeX. No markdown fences, no explanations unless asked.".to_string(),
+        },
+        Message {
+            role: "user".to_string(),
+            content: prompt,
+        },
+    ];
 
     let payload = OllamaRequest {
-        model: "gemma3:12b".to_string(),
-        prompt,
+        model: OLLAMA_MODEL.to_string(),
+        messages,
         stream: false,
     };
 
@@ -153,10 +180,38 @@ async fn ask_ollama(prompt: String) -> Result<String, String> {
 
     if res.status().is_success() {
         let body: OllamaResponse = res.json().await.map_err(|e| e.to_string())?;
-        Ok(body.response)
+        Ok(clean_output(&body.message.content))
     } else {
         Err(format!("Ollama error: {}", res.status()))
     }
+}
+
+#[tauri::command]
+async fn fix_latex_error(snippet: String, error_msg: String) -> Result<String, String> {
+    let prompt = format!("Fix this LaTeX compile error.\nError: {}\n\nCode:\n{}", error_msg, snippet);
+    ask_ollama(prompt).await
+}
+
+#[tauri::command]
+async fn to_latex_formula(snippet: String) -> Result<String, String> {
+    let prompt: String = format!("Convert the text into latex formula. Only output the latex expression. \n{}", snippet);
+    ask_ollama(prompt).await
+}
+
+#[tauri::command]
+async fn autocomplete_latex(prefix: String) -> Result<String, String> {
+    let prompt = format!("Continue this LaTeX snippet. Output only the continuation, not the original:\n{}", prefix);
+    ask_ollama(prompt).await
+}
+
+
+fn clean_output(s: &str) -> String {
+    s.trim()
+     .trim_start_matches("```latex")
+     .trim_start_matches("```")
+     .trim_end_matches("```")
+     .trim()
+     .to_string()
 }
 
 #[derive(Serialize)]
@@ -265,13 +320,17 @@ pub fn run() {
         .invoke_handler(tauri::generate_handler![
             read_text_file,
             write_text_file,
-            read_tex,
             read_main_pdf_base64,
             compile_latex,
             ask_ollama,
-            read_folder,
             pick_file,
             copy_pdf_to_workspace,
+            read_tex, // ✅ 记得在这里注册！否则前端无法调用
+            compile_latex, 
+            read_folder,
+            fix_latex_error,
+            to_latex_formula,
+            autocomplete_latex
         ])
 
         .run(tauri::generate_context!())
