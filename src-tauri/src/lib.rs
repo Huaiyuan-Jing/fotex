@@ -3,7 +3,6 @@
 use reqwest::Client;
 use serde::{Deserialize, Serialize};
 use std::fs;
-use std::process::Command;
 use tauri_plugin_shell::ShellExt;
 
 #[tauri::command]
