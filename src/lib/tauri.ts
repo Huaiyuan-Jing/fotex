@@ -27,7 +27,7 @@ export async function writeTextFile(payload: WriteTextFilePayload): Promise<Writ
 
 /** Read temp.tex from src-tauri; used to init the editor. */
 export async function readTempTex(): Promise<string> {
-  return invoke<string>("read_temp_tex");
+  return invoke<string>("read_tex");
 }
 
 /** Read temp.pdf as base64 for embedding (avoids asset protocol). */

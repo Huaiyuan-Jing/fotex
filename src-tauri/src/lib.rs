@@ -3,7 +3,7 @@
 use reqwest::Client;
 use serde::{Deserialize, Serialize};
 use std::fs;
-use std::path::PathBuf;
+use std::path::{Path, PathBuf}; // 合并了 Path 和 PathBuf 的引用
 use tauri_plugin_shell::ShellExt;
 
 /// Use the crate root (src-tauri, where Cargo.toml and src/ live) so temp.tex/temp.pdf go there.
@@ -21,17 +21,18 @@ Hello, LaTeX.
 \end{document}
 ";
 
-/// Read temp.tex from src-tauri; returns default content if file does not exist.
+/// Read tex from src-tauri; returns default content if file does not exist.
 #[tauri::command]
-fn read_temp_tex() -> Result<String, String> {
+fn read_tex() -> Result<String, String> {
     let dir = src_tauri_dir()?;
-    let path = dir.join("temp.tex");
+    let path = dir.join("main.tex"); // 注意这里读的是 main.tex，与你的 compile_latex 保持一致
     match fs::read_to_string(&path) {
         Ok(s) => Ok(s),
         Err(e) if e.kind() == std::io::ErrorKind::NotFound => Ok(DEFAULT_TEX.to_string()),
         Err(e) => Err(e.to_string()),
     }
 }
+
 
 /// Read temp.pdf as base64 for embedding in the frontend (avoids asset protocol / iframe crash).
 #[tauri::command]
@@ -45,19 +46,31 @@ fn read_temp_pdf_base64() -> Result<String, String> {
     ))
 }
 
+
 #[tauri::command]
-async fn compile_latex(app_handle: tauri::AppHandle, content: String) -> Result<String, String> {
-    let output_dir = src_tauri_dir()?;
-    let tex_path = output_dir.join("temp.tex");
-    let pdf_path = output_dir.join("temp.pdf");
+async fn compile_latex(
+    app_handle: tauri::AppHandle, 
+    content: String, 
+    work_dir: Option<String> // 新增可选参数，前端不传或传 null 时起效
+) -> Result<String, String> {
+    // 1. 如果有 work_dir 就用它，否则回退到 src_tauri_dir()
+    let output_dir = match work_dir {
+        Some(dir) if !dir.trim().is_empty() => PathBuf::from(dir),
+        _ => src_tauri_dir()?,
+    };
+
+    // 2. 将文件命名为 main.tex 存放在目标文件夹中
+    let tex_path = output_dir.join("main.tex");
+    let pdf_path = output_dir.join("main.pdf");
     fs::write(&tex_path, content).map_err(|e| e.to_string())?;
 
+    // 3. 运行编译并指定当前运行目录为 output_dir
     let sidecar_command = app_handle
         .shell()
         .sidecar("tectonic")
         .map_err(|e| format!("Failed to create sidecar: {}", e))?
-        .args(["-X", "compile", "temp.tex"])
-        .current_dir(&output_dir);
+        .args(["-X", "compile", "main.tex"]) // 直接编译 main.tex
+        .current_dir(&output_dir);           // 关键：切换工作目录
 
     let output = sidecar_command
         .output()
@@ -110,11 +123,53 @@ async fn ask_ollama(prompt: String) -> Result<String, String> {
     }
 }
 
+#[derive(Serialize)]
+struct FileNode {
+    name: String,
+    path: String,
+    is_dir: bool,
+    children: Vec<FileNode>,
+}
+
+fn build_tree(path: &Path) -> Result<FileNode, String> {
+    let name = path.file_name().unwrap_or_default().to_string_lossy().into_owned();
+    let is_dir = path.is_dir();
+    let path_str = path.to_string_lossy().into_owned();
+    let mut children = Vec::new();
+
+    if is_dir {
+        if let Ok(entries) = fs::read_dir(path) {
+            for entry in entries.flatten() {
+                if !entry.file_name().to_string_lossy().starts_with('.') {
+                    if let Ok(child_node) = build_tree(&entry.path()) {
+                        children.push(child_node);
+                    }
+                }
+            }
+        }
+        children.sort_by(|a, b| b.is_dir.cmp(&a.is_dir).then(a.name.cmp(&b.name)));
+    }
+    Ok(FileNode { name, path: path_str, is_dir, children })
+}
+
+#[tauri::command]
+fn read_folder(path: String) -> Result<FileNode, String> {
+    build_tree(Path::new(&path))
+}
+
 #[cfg_attr(mobile, tauri::mobile_entry_point)]
 pub fn run() {
     tauri::Builder::default()
         .plugin(tauri_plugin_shell::init())
-        .invoke_handler(tauri::generate_handler![read_temp_tex, read_temp_pdf_base64, compile_latex, ask_ollama])
+
+        .plugin(tauri_plugin_dialog::init()) 
+        .invoke_handler(tauri::generate_handler![
+            read_tex, // ✅ 记得在这里注册！否则前端无法调用
+            compile_latex, 
+            ask_ollama, 
+            read_folder
+        ])
+
         .run(tauri::generate_context!())
         .expect("error while running tauri application");
 }
