@@ -7,11 +7,13 @@ export function PdfTabs() {
   const activePdfTab = useProjectStore((s) => s.activePdfTab);
   const setActivePdfTab = useProjectStore((s) => s.setActivePdfTab);
   const compiledPdfPath = useProjectStore((s) => s.compiledPdfPath);
+  const pdfRefreshKey = useProjectStore((s) => s.pdfRefreshKey);
   const uploadedPdfPath = useProjectStore((s) => s.uploadedPdfPath);
   const compileLog = useProjectStore((s) => s.compileLog);
   const compileStatus = useProjectStore((s) => s.compileStatus);
 
   const currentPath = activePdfTab === "compiled" ? compiledPdfPath : uploadedPdfPath;
+  const refreshKey = activePdfTab === "compiled" ? pdfRefreshKey : undefined;
 
   return (
     <div className="pdf-tabs">
@@ -47,7 +49,7 @@ export function PdfTabs() {
             <pre className="pdf-log-content">{compileLog || "No log yet."}</pre>
           </div>
         ) : (
-          <PdfPreview pdfPath={currentPath} />
+          <PdfPreview pdfPath={currentPath} refreshKey={refreshKey} />
         )}
       </div>
     </div>

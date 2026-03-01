@@ -3,6 +3,8 @@ import * as tauri from "../../lib/tauri";
 
 interface PdfPreviewProps {
   pdfPath: string | undefined;
+  /** When changed (e.g. after compile), re-fetch PDF even if pdfPath is the same. */
+  refreshKey?: number;
 }
 
 function base64ToBlobUrl(base64: string): string {
@@ -21,7 +23,7 @@ function base64ToBlobUrl(base64: string): string {
  */
 const REVOKE_DELAY_MS = 1500; // PDF 切换更稳，别太短
 
-export function PdfPreview({ pdfPath }: PdfPreviewProps) {
+export function PdfPreview({ pdfPath, refreshKey }: PdfPreviewProps) {
   const [blobUrl, setBlobUrl] = useState<string | undefined>(undefined);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -96,7 +98,7 @@ export function PdfPreview({ pdfPath }: PdfPreviewProps) {
         }, REVOKE_DELAY_MS);
       }
     };
-  }, [pdfPath]);
+  }, [pdfPath, refreshKey]);
 
   const handleIframeLoad = () => {
     // 新 PDF 加载完成后，再 revoke 旧 URL（最关键）
