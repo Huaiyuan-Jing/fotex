@@ -15,6 +15,8 @@ import type {
   OllamaGenerateResult,
 } from "../state/types";
 
+export interface ReadPdfPayload { path: string; }
+
 /** Read UTF-8 text file. */
 export async function readTextFile(payload: ReadTextFilePayload): Promise<ReadTextFileResult> {
   // ✅ 修改这里：套上 { payload }
@@ -53,9 +55,10 @@ export async function readMainTex(): Promise<ReadMainTexResult> {
   return invoke<ReadMainTexResult>("read_tex");
 }
 
-/** Read main.pdf as base64 for embedding (avoids asset protocol). */
-export async function readMainPdfBase64(): Promise<string> {
-  return invoke<string>("read_main_pdf_base64");
+/** 传入真实的 PDF 路径读取 Base64 数据 */
+export async function readPdfBase64(payload: ReadPdfPayload): Promise<string> {
+  // 注意套上 { payload }
+  return invoke<string>("read_pdf_base64", { payload });
 }
 
 /** Compile LaTeX via lib.rs compile_latex. Returns absolute PDF path on success. */

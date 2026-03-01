@@ -93,12 +93,20 @@ fn read_tex() -> Result<ReadTexResult, String> {
     }
 }
 
-/// Read main.pdf as base64 for embedding in the frontend (avoids asset protocol / iframe crash).
+#[derive(Deserialize)]
+struct ReadPdfPayload {
+    path: String,
+}
+
 #[tauri::command]
-fn read_main_pdf_base64() -> Result<String, String> {
-    let dir = src_tauri_dir()?;
-    let path = dir.join("main.pdf");
-    let bytes = fs::read(&path).map_err(|e| e.to_string())?;
+fn read_pdf_base64(payload: ReadPdfPayload) -> Result<String, String> {
+    let path = if payload.path.trim().is_empty() {
+        src_tauri_dir()?.join("main.pdf")
+    } else {
+        PathBuf::from(payload.path)
+    };
+
+    let bytes = fs::read(&path).map_err(|e| format!("Cannot read pdf: {}", e))?;
     Ok(base64::Engine::encode(
         &base64::engine::general_purpose::STANDARD,
         &bytes,
@@ -385,7 +393,7 @@ pub fn run() {
         .invoke_handler(tauri::generate_handler![
             read_text_file,
             write_text_file,
-            read_main_pdf_base64,
+            read_pdf_base64,
             ask_ollama,
             pick_file,
             copy_pdf_to_workspace,
