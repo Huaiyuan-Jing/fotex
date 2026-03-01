@@ -14,7 +14,10 @@ const OLLAMA_MODEL: &str = "gemma3:12b";
 fn src_tauri_dir() -> Result<PathBuf, String> {
     let output_dir = PathBuf::from(env!("CARGO_MANIFEST_DIR"));
     if !output_dir.exists() {
-        return Err(format!("src-tauri dir does not exist: {}", output_dir.display()));
+        return Err(format!(
+            "src-tauri dir does not exist: {}",
+            output_dir.display()
+        ));
     }
     Ok(output_dir)
 }
@@ -64,14 +67,13 @@ fn write_text_file(payload: WriteTextFilePayload) -> Result<WriteTextFileResult,
 #[tauri::command]
 fn read_tex() -> Result<String, String> {
     let dir = src_tauri_dir()?;
-    let path = dir.join("main.tex"); // 注意这里读的是 main.tex，与你的 compile_latex 保持一致
+    let path = dir.join("main.tex");
     match fs::read_to_string(&path) {
         Ok(s) => Ok(s),
         Err(e) if e.kind() == std::io::ErrorKind::NotFound => Ok(DEFAULT_TEX.to_string()),
         Err(e) => Err(e.to_string()),
     }
 }
-
 
 /// Read main.pdf as base64 for embedding in the frontend (avoids asset protocol / iframe crash).
 #[tauri::command]
@@ -85,31 +87,27 @@ fn read_main_pdf_base64() -> Result<String, String> {
     ))
 }
 
-
 #[tauri::command]
 async fn compile_latex(
-    app_handle: tauri::AppHandle, 
-    content: String, 
-    work_dir: Option<String> // 新增可选参数，前端不传或传 null 时起效
+    app_handle: tauri::AppHandle,
+    content: String,
+    work_dir: Option<String>,
 ) -> Result<String, String> {
-    // 1. 如果有 work_dir 就用它，否则回退到 src_tauri_dir()
     let output_dir = match work_dir {
         Some(dir) if !dir.trim().is_empty() => PathBuf::from(dir),
         _ => src_tauri_dir()?,
     };
 
-    // 2. 将文件命名为 main.tex 存放在目标文件夹中
     let tex_path = output_dir.join("main.tex");
     let pdf_path = output_dir.join("main.pdf");
     fs::write(&tex_path, content).map_err(|e| e.to_string())?;
 
-    // 3. 运行编译并指定当前运行目录为 output_dir
     let sidecar_command = app_handle
         .shell()
         .sidecar("tectonic")
         .map_err(|e| format!("Failed to create sidecar: {}", e))?
         .args(["-X", "compile", "main.tex"]) // 直接编译 main.tex
-        .current_dir(&output_dir);           // 关键：切换工作目录
+        .current_dir(&output_dir); // 关键：切换工作目录
 
     let output = sidecar_command
         .output()
@@ -124,7 +122,6 @@ async fn compile_latex(
     }
 }
 
-
 #[derive(Serialize)]
 struct Message {
     role: String,
@@ -134,7 +131,7 @@ struct Message {
 #[derive(Serialize)]
 struct OllamaRequest {
     model: String,
-    messages: Vec<Message>,  
+    messages: Vec<Message>,
     stream: bool,
 }
 
@@ -145,14 +142,13 @@ struct OllamaMessage {
 
 #[derive(Deserialize)]
 struct OllamaResponse {
-    message: OllamaMessage,  
+    message: OllamaMessage,
 }
 
 #[tauri::command]
 async fn ask_ollama(prompt: String) -> Result<String, String> {
     let client = Client::new();
     let url = OLLAMA_CHAT.to_string();
-
 
     let messages = vec![
         Message {
@@ -188,30 +184,38 @@ async fn ask_ollama(prompt: String) -> Result<String, String> {
 
 #[tauri::command]
 async fn fix_latex_error(snippet: String, error_msg: String) -> Result<String, String> {
-    let prompt = format!("Fix this LaTeX compile error.\nError: {}\n\nCode:\n{}", error_msg, snippet);
+    let prompt = format!(
+        "Fix this LaTeX compile error.\nError: {}\n\nCode:\n{}",
+        error_msg, snippet
+    );
     ask_ollama(prompt).await
 }
 
 #[tauri::command]
 async fn to_latex_formula(snippet: String) -> Result<String, String> {
-    let prompt: String = format!("Convert the text into latex formula. Only output the latex expression. \n{}", snippet);
+    let prompt: String = format!(
+        "Convert the text into latex formula. Only output the latex expression. \n{}",
+        snippet
+    );
     ask_ollama(prompt).await
 }
 
 #[tauri::command]
 async fn autocomplete_latex(prefix: String) -> Result<String, String> {
-    let prompt = format!("Continue this LaTeX snippet. Output only the continuation, not the original:\n{}", prefix);
+    let prompt = format!(
+        "Continue this LaTeX snippet. Output only the continuation, not the original:\n{}",
+        prefix
+    );
     ask_ollama(prompt).await
 }
 
-
 fn clean_output(s: &str) -> String {
     s.trim()
-     .trim_start_matches("```latex")
-     .trim_start_matches("```")
-     .trim_end_matches("```")
-     .trim()
-     .to_string()
+        .trim_start_matches("```latex")
+        .trim_start_matches("```")
+        .trim_end_matches("```")
+        .trim()
+        .to_string()
 }
 
 #[derive(Serialize)]
@@ -223,7 +227,11 @@ struct FileNode {
 }
 
 fn build_tree(path: &Path) -> Result<FileNode, String> {
-    let name = path.file_name().unwrap_or_default().to_string_lossy().into_owned();
+    let name = path
+        .file_name()
+        .unwrap_or_default()
+        .to_string_lossy()
+        .into_owned();
     let is_dir = path.is_dir();
     let path_str = path.to_string_lossy().into_owned();
     let mut children = Vec::new();
@@ -240,7 +248,12 @@ fn build_tree(path: &Path) -> Result<FileNode, String> {
         }
         children.sort_by(|a, b| b.is_dir.cmp(&a.is_dir).then(a.name.cmp(&b.name)));
     }
-    Ok(FileNode { name, path: path_str, is_dir, children })
+    Ok(FileNode {
+        name,
+        path: path_str,
+        is_dir,
+        children,
+    })
 }
 
 #[tauri::command]
@@ -266,10 +279,12 @@ struct PickFileResult {
 }
 
 #[tauri::command]
-async fn pick_file(app_handle: tauri::AppHandle, payload: PickFilePayload) -> Result<PickFileResult, String> {
+async fn pick_file(
+    app_handle: tauri::AppHandle,
+    payload: PickFilePayload,
+) -> Result<PickFileResult, String> {
     let mut builder = app_handle.dialog().file();
-    
-    // 1. 设置文件过滤器
+
     if let Some(ref filters) = payload.filters {
         for f in filters {
             let ext_refs: Vec<&str> = f.extensions.iter().map(String::as_str).collect();
@@ -277,28 +292,26 @@ async fn pick_file(app_handle: tauri::AppHandle, payload: PickFilePayload) -> Re
         }
     }
 
-    // 2. 创建一个异步的一次性通道 (oneshot channel)
     let (tx, rx) = tokio::sync::oneshot::channel();
 
-    // 3. 使用非阻塞的 pick_file（传入闭包），选完后把结果发送到通道
     builder.pick_file(move |file_path| {
         let _ = tx.send(file_path);
     });
 
-    // 4. 异步等待用户的选择，彻底解放主线程不卡死！
-    let file_path = rx.await.map_err(|_| "Dialog closed or failed".to_string())?;
+    let file_path = rx
+        .await
+        .map_err(|_| "Dialog closed or failed".to_string())?;
 
-    // 5. 处理结果并返回给前端
     let path_str = file_path
         .ok_or_else(|| "No file selected".to_string())?
         .to_string();
-        
+
     let name = Path::new(&path_str)
         .file_name()
         .and_then(|n| n.to_str())
         .unwrap_or("")
         .to_string();
-        
+
     Ok(PickFileResult {
         path: path_str,
         name,
@@ -318,7 +331,9 @@ struct CopyPdfToWorkspaceResult {
 }
 
 #[tauri::command]
-fn copy_pdf_to_workspace(payload: CopyPdfToWorkspacePayload) -> Result<CopyPdfToWorkspaceResult, String> {
+fn copy_pdf_to_workspace(
+    payload: CopyPdfToWorkspacePayload,
+) -> Result<CopyPdfToWorkspaceResult, String> {
     let dir = src_tauri_dir()?;
     let dst = dir.join("uploaded.pdf");
     fs::copy(&payload.src_path, &dst).map_err(|e| e.to_string())?;
@@ -331,8 +346,7 @@ fn copy_pdf_to_workspace(payload: CopyPdfToWorkspacePayload) -> Result<CopyPdfTo
 pub fn run() {
     tauri::Builder::default()
         .plugin(tauri_plugin_shell::init())
-
-        .plugin(tauri_plugin_dialog::init()) 
+        .plugin(tauri_plugin_dialog::init())
         .invoke_handler(tauri::generate_handler![
             read_text_file,
             write_text_file,
@@ -340,14 +354,13 @@ pub fn run() {
             ask_ollama,
             pick_file,
             copy_pdf_to_workspace,
-            read_tex, // ✅ 记得在这里注册！否则前端无法调用
-            compile_latex, 
+            read_tex,
+            compile_latex,
             read_folder,
             fix_latex_error,
             to_latex_formula,
             autocomplete_latex
         ])
-
         .run(tauri::generate_context!())
         .expect("error while running tauri application");
 }

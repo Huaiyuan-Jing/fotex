@@ -8,10 +8,10 @@ export function AssistantPanel() {
   const ollamaModel = useProjectStore((s) => s.ollamaModel);
   const ollamaModels = useProjectStore((s) => s.ollamaModels);
   const setOllamaModel = useProjectStore((s) => s.setOllamaModel);
-  
+
   // 引入我们刚才新建的方法，替代 sendChat
-  const rewriteEditorContent = useProjectStore((s) => s.rewriteEditorContent); 
-  
+  const rewriteEditorContent = useProjectStore((s) => s.rewriteEditorContent);
+
   const clearAssistant = useProjectStore((s) => s.clearAssistant);
   const ollamaReady = useProjectStore((s) => s.ollamaReady);
   const assistantStatus = useProjectStore((s) => s.assistantStatus);
@@ -59,11 +59,11 @@ export function AssistantPanel() {
           Clear
         </button>
       </div>
-      
+
       <PromptButtons />
-      
+
       {/* 🛑 删除了 <ChatThread /> 组件，整个对话框区域不复存在了 */}
-      
+
       <div className="assistant-composer">
         {assistantError && (
           <div className="assistant-error">{assistantError}</div>
