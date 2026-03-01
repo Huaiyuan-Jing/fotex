@@ -178,10 +178,12 @@ export const useProjectStore = create<Store>((set, get) => ({
   },
 
   compile: async () => {
-    const { texContent, workspaceDir } = get();
+    // 关键：从 get() 中把 texPath 也拿出来
+    const { texContent, workspaceDir, texPath } = get();
     set({ compileStatus: "compiling" });
     try {
       const result = await tauri.compileTex({
+        texPath, // 把真实路径传给 tauri.ts
         texContent,
         workdir: workspaceDir,
       });

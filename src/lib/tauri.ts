@@ -51,14 +51,15 @@ export async function readMainPdfBase64(): Promise<string> {
   return invoke<string>("read_main_pdf_base64");
 }
 
-/** Compile LaTeX via lib.rs compile_latex (uses tectonic sidecar). Returns absolute PDF path on success. */
+/** Compile LaTeX via lib.rs compile_latex. Returns absolute PDF path on success. */
 export async function compileTex(payload: CompileTexPayload): Promise<CompileTexResult> {
   const content = payload.texContent ?? "";
-  const workDir = payload.workdir;
+  const texPath = payload.texPath; // 取出具体的 tex 文件路径
+
   try {
     const pdfPath = await invoke<string>("compile_latex", {
       content,
-      work_dir: workDir ?? null,
+      texPath: texPath ?? null, // Tauri 会自动将驼峰 texPath 映射为 Rust 的 tex_path
     });
     return { success: true, pdfPath, log: "Compiled successfully." };
   } catch (e) {

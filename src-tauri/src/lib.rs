@@ -91,23 +91,38 @@ fn read_main_pdf_base64() -> Result<String, String> {
 async fn compile_latex(
     app_handle: tauri::AppHandle,
     content: String,
-    work_dir: Option<String>,
+    tex_path: Option<String>, // 关键：前端直接把当前的真实文件路径传过来
 ) -> Result<String, String> {
-    let output_dir = match work_dir {
-        Some(dir) if !dir.trim().is_empty() => PathBuf::from(dir),
-        _ => src_tauri_dir()?,
+    // 1. 根据传入的路径，智能提取工作目录和真实文件名
+    let (actual_tex_path, work_dir, file_name) = match tex_path {
+        Some(path_str) if !path_str.trim().is_empty() => {
+            let p = PathBuf::from(path_str);
+            let dir = p.parent().unwrap_or(Path::new("")).to_path_buf();
+            let name = p
+                .file_name()
+                .unwrap_or_default()
+                .to_string_lossy()
+                .into_owned();
+            (p, dir, name)
+        }
+        _ => {
+            // 如果前端什么都没传（比如新建的未保存草稿），才回退到开发目录的 main.tex
+            let dir = src_tauri_dir()?;
+            let p = dir.join("main.tex");
+            (p, dir, "main.tex".to_string())
+        }
     };
 
-    let tex_path = output_dir.join("main.tex");
-    let pdf_path = output_dir.join("main.pdf");
-    fs::write(&tex_path, content).map_err(|e| e.to_string())?;
+    // 2. 将编辑器里的最新内容覆盖写入真实的 .tex 文件中
+    fs::write(&actual_tex_path, content).map_err(|e| e.to_string())?;
 
+    // 3. 在对应的文件夹里，针对真实文件名运行 tectonic 编译
     let sidecar_command = app_handle
         .shell()
         .sidecar("tectonic")
         .map_err(|e| format!("Failed to create sidecar: {}", e))?
-        .args(["-X", "compile", "main.tex"]) // 直接编译 main.tex
-        .current_dir(&output_dir); // 关键：切换工作目录
+        .args(["-X", "compile", &file_name]) // 编译真实文件名
+        .current_dir(&work_dir); // 切换到真实所在文件夹
 
     let output = sidecar_command
         .output()
@@ -115,6 +130,8 @@ async fn compile_latex(
         .map_err(|e| format!("Tectonic execution error: {}", e))?;
 
     if output.status.success() {
+        // 编译成功后，把 .tex 后缀换成 .pdf 就是生成的 PDF 路径
+        let pdf_path = actual_tex_path.with_extension("pdf");
         Ok(pdf_path.to_string_lossy().into_owned())
     } else {
         let err_msg = String::from_utf8_lossy(&output.stderr);
