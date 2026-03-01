@@ -17,12 +17,28 @@ import type {
 
 /** Read UTF-8 text file. */
 export async function readTextFile(payload: ReadTextFilePayload): Promise<ReadTextFileResult> {
-  return invoke<ReadTextFileResult>("read_text_file", payload as unknown as Record<string, unknown>);
+  // ✅ 修改这里：套上 { payload }
+  return invoke<ReadTextFileResult>("read_text_file", { payload });
 }
 
 /** Write text file. */
 export async function writeTextFile(payload: WriteTextFilePayload): Promise<WriteTextFileResult> {
-  return invoke<WriteTextFileResult>("write_text_file", payload as unknown as Record<string, unknown>);
+  // ✅ 修改这里：套上 { payload }
+  return invoke<WriteTextFileResult>("write_text_file", { payload });
+}
+
+/** Open file picker; optional filters e.g. [{ name: "PDF", extensions: ["pdf"] }]. */
+export async function pickFile(payload: PickFilePayload = {}): Promise<PickFileResult> {
+  // ✅ 修改这里：套上 { payload }
+  return invoke<PickFileResult>("pick_file", { payload });
+}
+
+/** Copy a PDF into workspace; returns destination path. */
+export async function copyPdfToWorkspace(
+  payload: CopyPdfToWorkspacePayload
+): Promise<CopyPdfToWorkspaceResult> {
+  // ✅ 修改这里：套上 { payload }
+  return invoke<CopyPdfToWorkspaceResult>("copy_pdf_to_workspace", { payload });
 }
 
 /** Read main.tex from src-tauri; used to init the editor. */
@@ -50,10 +66,6 @@ export async function compileTex(payload: CompileTexPayload): Promise<CompileTex
   }
 }
 
-/** Open file picker; optional filters e.g. [{ name: "PDF", extensions: ["pdf"] }]. */
-export async function pickFile(payload: PickFilePayload = {}): Promise<PickFileResult> {
-  return invoke<PickFileResult>("pick_file", payload as unknown as Record<string, unknown>);
-}
 
 /** Read folder tree (name, path, is_dir, children). */
 export interface FileNode {
@@ -64,13 +76,6 @@ export interface FileNode {
 }
 export async function readFolder(path: string): Promise<FileNode> {
   return invoke<FileNode>("read_folder", { path });
-}
-
-/** Copy a PDF into workspace; returns destination path. */
-export async function copyPdfToWorkspace(
-  payload: CopyPdfToWorkspacePayload
-): Promise<CopyPdfToWorkspaceResult> {
-  return invoke<CopyPdfToWorkspaceResult>("copy_pdf_to_workspace", payload as unknown as Record<string, unknown>);
 }
 
 /** List available Ollama models. Stub: lib.rs uses fixed model gemma3:12b. */
