@@ -237,11 +237,36 @@ button {
   overflow: hidden;
   background: var(--fotex-dark);
 }
+
+/* 主容器：横向排列，平分左右 */
 .split-main {
   display: flex;
+  flex-direction: row;
   flex: 1;
   min-height: 0;
+  overflow: hidden;
 }
+
+/* ================= 左半屏 ================= */
+.split-left-workspace {
+  display: flex;
+  flex-direction: column;
+  flex: 1; /* 这里是 1，右半屏也是 1，代表平分宽度 */
+  min-width: 0;
+  border-right: 1px solid #1e293b; /* 左右屏幕的中央分割线 */
+  background: #0f172a;
+}
+
+/* 左侧上半：文件树 + 编辑器 */
+.split-left-top {
+  display: flex;
+  flex-direction: row;
+  flex: 1;
+  min-height: 0;
+  overflow: hidden;
+}
+
+/* 文件树侧边栏 */
 .split-sidebar {
   width: 220px;
   min-width: 220px;
@@ -251,21 +276,17 @@ button {
   background: #0f172a;
   overflow: hidden;
 }
+
+/* 代码编辑器 */
 .split-editor {
   display: flex;
   flex-direction: column;
   flex: 1;
   min-width: 0;
-  border-right: 1px solid #1e293b;
   background: #0f172a;
 }
-.split-preview {
-  flex: 1;
-  min-width: 0;
-  display: flex;
-  flex-direction: column;
-  background: #0f172a;
-}
+
+/* 左侧下半：AI 对话框 */
 .split-assistant-bottom {
   flex-shrink: 0;
   height: 200px;
@@ -276,7 +297,28 @@ button {
   display: flex;
   flex-direction: column;
   overflow: hidden;
+  width: 100%; /* 确保它只撑满左半屏 */
 }
+
+/* ================= 右半屏 ================= */
+.split-right-workspace {
+  display: flex;
+  flex-direction: column;
+  flex: 1; /* 与左侧平分宽度，如果你想让 PDF 更宽，可以改成 flex: 1.2 */
+  min-width: 0;
+  background: #0f172a;
+}
+
+/* PDF 预览容器 */
+.split-preview {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  background: #0f172a;
+}
+
+/* 如果你之前还有竖向 AI 侧边栏的备用样式，可以保留，没有也不影响 */
 .split-assistant {
   width: 320px;
   min-width: 320px;
@@ -285,7 +327,6 @@ button {
   flex-direction: column;
   background: #0f172a;
 }
-
 /* File tree */
 .file-tree {
   display: flex;
