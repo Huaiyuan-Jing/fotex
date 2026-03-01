@@ -1,5 +1,7 @@
 import { useState, useRef, useEffect } from "react";
 import { useProjectStore } from "../../state/useProjectStore";
+// 👇 1. 引入你的 Logo 图片 (如果路径不对，请根据你的实际目录结构调整，比如 "../assets/fotex_logo.webp")
+import fotexLogo from "../../assets/fotex_logo.webp";
 
 export function AppHeader() {
   const [fileMenuOpen, setFileMenuOpen] = useState(false);
@@ -23,7 +25,17 @@ export function AppHeader() {
   return (
     <header className="app-header">
       <div className="app-header-left">
-        <span className="app-logo">FoTex</span>
+        
+        {/* 👇 2. 修改这里：用一个 div 把 Logo 图标和标题包起来，实现水平对齐 */}
+        <div style={{ display: "flex", alignItems: "center", gap: "10px", marginRight: "16px" }}>
+          <img 
+            src={fotexLogo} 
+            alt="FoTex Logo" 
+            style={{ height: "24px", width: "auto" }} // 高度可以根据你的顶栏实际视觉效果微调
+          />
+          <span className="app-logo" style={{ margin: 0 }}>FoTex</span>
+        </div>
+
         <nav className="app-menu">
           <div className="app-menu-item-wrap" ref={fileMenuRef}>
             <span
