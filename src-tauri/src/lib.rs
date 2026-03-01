@@ -301,7 +301,7 @@ async fn ask_ollama(prompt: String) -> Result<String, String> {
 #[tauri::command]
 async fn fix_latex_error(snippet: String, error_msg: String) -> Result<String, String> {
     let prompt = format!(
-        "Fix this LaTeX compile error.\nError: {}\n\nCode:\n{}\nOutput ONLY raw LaTeX. No markdown fences, no explanations unless asked.",
+        "Fix this LaTeX compile error.\nError: {}\n\nCode:\n{}\n",
         error_msg, snippet
     );
     ask_ollama(prompt).await
@@ -326,23 +326,27 @@ async fn autocomplete_latex(prefix: String) -> Result<String, String> {
 }
 
 fn clean_output(s: &str) -> String {
-    // 1. 创建正则：匹配 <think>...</think> 及其内部所有内容
-    // (?s) 是标志位，表示让 . 匹配包括换行符在内的所有字符 (dot matches all)
-    // *? 是非贪婪匹配，确保只匹配到最近的结束标签
+    // 1. 移除 <think> 标签及其内部所有内容
     let re_think = Regex::new(r"(?s)<think>.*?</think>").unwrap();
-
-    // 2. 执行替换，将思考过程替换为空字符串
     let stripped = re_think.replace_all(s, "");
 
-    // 3. 继续清理原有的 Markdown 代码块标签
-    stripped
-        .trim()
-        .trim_start_matches("```latex")
-        .trim_start_matches("```tex") // 兼容不同的标注
-        .trim_start_matches("```")
-        .trim_end_matches("```")
-        .trim()
-        .to_string()
+    // 2. ✨ 终极正则：匹配开头，结尾可以是 ``` 也可以直接是字符串末尾 ($)
+    // \s*\n 确保剥离掉 ```latex 后面的换行符
+    let re_code = Regex::new(r"(?s)```(?:latex|tex|txt)?\s*\n(.*?)(?:```|$)").unwrap();
+
+    if let Some(caps) = re_code.captures(&stripped) {
+        // 如果找到了，安全提取并去除首尾空白
+        caps.get(1).map_or(stripped.to_string(), |m| m.as_str().trim().to_string())
+    } else {
+        // 3. 兜底逻辑：如果 AI 连开头的 ``` 都没写，手动削皮
+        let mut res = stripped.trim();
+        if res.starts_with("```") {
+            res = res.trim_start_matches("```latex")
+                     .trim_start_matches("```tex")
+                     .trim_start_matches("```");
+        }
+        res.trim_end_matches("```").trim().to_string()
+    }
 }
 
 #[derive(Serialize)]

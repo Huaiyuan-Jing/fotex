@@ -59,7 +59,6 @@
 2.  **Node.js**: `pnpm` is recommended.
 3.  **Tectonic**: The app uses `tectonic` as a sidecar.
 4.  **Ollama**: Install and run [Ollama](https://ollama.com/).
-    * *Note: If your Ollama server is remote, ensure `OLLAMA_ORIGINS="*"` is set in your environment.*
 
 ### Installation
 
