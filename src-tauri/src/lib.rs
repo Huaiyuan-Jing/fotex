@@ -266,23 +266,39 @@ struct PickFileResult {
 }
 
 #[tauri::command]
-fn pick_file(app_handle: tauri::AppHandle, payload: PickFilePayload) -> Result<PickFileResult, String> {
+async fn pick_file(app_handle: tauri::AppHandle, payload: PickFilePayload) -> Result<PickFileResult, String> {
     let mut builder = app_handle.dialog().file();
+    
+    // 1. 设置文件过滤器
     if let Some(ref filters) = payload.filters {
         for f in filters {
             let ext_refs: Vec<&str> = f.extensions.iter().map(String::as_str).collect();
             builder = builder.add_filter(&f.name, ext_refs.as_slice());
         }
     }
-    let file_path = builder.blocking_pick_file();
+
+    // 2. 创建一个异步的一次性通道 (oneshot channel)
+    let (tx, rx) = tokio::sync::oneshot::channel();
+
+    // 3. 使用非阻塞的 pick_file（传入闭包），选完后把结果发送到通道
+    builder.pick_file(move |file_path| {
+        let _ = tx.send(file_path);
+    });
+
+    // 4. 异步等待用户的选择，彻底解放主线程不卡死！
+    let file_path = rx.await.map_err(|_| "Dialog closed or failed".to_string())?;
+
+    // 5. 处理结果并返回给前端
     let path_str = file_path
         .ok_or_else(|| "No file selected".to_string())?
         .to_string();
+        
     let name = Path::new(&path_str)
         .file_name()
         .and_then(|n| n.to_str())
         .unwrap_or("")
         .to_string();
+        
     Ok(PickFileResult {
         path: path_str,
         name,
@@ -321,7 +337,6 @@ pub fn run() {
             read_text_file,
             write_text_file,
             read_main_pdf_base64,
-            compile_latex,
             ask_ollama,
             pick_file,
             copy_pdf_to_workspace,
