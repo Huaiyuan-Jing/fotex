@@ -12,7 +12,23 @@ export function LatexEditor() {
   const pendingInsertAtCursor = useProjectStore((s) => s.pendingInsertAtCursor);
   const clearPendingReplace = useProjectStore((s) => s.clearPendingReplace);
   const clearPendingInsert = useProjectStore((s) => s.clearPendingInsert);
-
+  const handleBeforeMount = (monaco: Parameters<NonNullable<Parameters<typeof Editor>[0]["beforeMount"]>>[0]) => {
+    const hasLang = monaco.languages.getLanguages().some((l: any) => l.id === 'latex');
+    if (!hasLang) {
+      monaco.languages.register({ id: 'latex' });
+      monaco.languages.setMonarchTokensProvider('latex', {
+        tokenizer: {
+          root: [
+            [/%.*/, 'comment'],
+            [/\\[a-zA-Z@]+/, 'keyword'],
+            [/\\./, 'keyword'],
+            [/[$]/, 'string'],
+            [/[{}()[\]]/, '@brackets'],
+          ]
+        }
+      });
+    }
+  };
   const onMount = useCallback(
     (editor: Parameters<NonNullable<Parameters<typeof Editor>[0]["onMount"]>>[0]) => {
       editorRef.current = editor;
@@ -86,9 +102,11 @@ export function LatexEditor() {
     <div className="latex-editor">
       <Editor
         height="100%"
-        defaultLanguage="latex"
+        language="latex"
+        theme="vs-dark"
         value={texContent}
         onChange={(value) => setTexContent(value ?? "")}
+        beforeMount={handleBeforeMount}
         onMount={onMount}
         options={{
           wordWrap: "on",
