@@ -132,23 +132,20 @@ async fn compile_latex(
             (p, dir, name)
         }
         _ => {
-            // 如果前端什么都没传（比如新建的未保存草稿），才回退到开发目录的 main.tex
             let dir = src_tauri_dir()?;
             let p = dir.join("main.tex");
             (p, dir, "main.tex".to_string())
         }
     };
 
-    // 2. 将编辑器里的最新内容覆盖写入真实的 .tex 文件中
     fs::write(&actual_tex_path, content).map_err(|e| e.to_string())?;
 
-    // 3. 在对应的文件夹里，针对真实文件名运行 tectonic 编译
     let sidecar_command = app_handle
         .shell()
         .sidecar("tectonic")
         .map_err(|e| format!("Failed to create sidecar: {}", e))?
-        .args(["-X", "compile", &file_name]) // 编译真实文件名
-        .current_dir(&work_dir); // 切换到真实所在文件夹
+        .args(["-X", "compile", &file_name])
+        .current_dir(&work_dir);
 
     let output = sidecar_command
         .output()
@@ -156,7 +153,6 @@ async fn compile_latex(
         .map_err(|e| format!("Tectonic execution error: {}", e))?;
 
     if output.status.success() {
-        // 编译成功后，把 .tex 后缀换成 .pdf 就是生成的 PDF 路径
         let pdf_path = actual_tex_path.with_extension("pdf");
         Ok(pdf_path.to_string_lossy().into_owned())
     } else {
