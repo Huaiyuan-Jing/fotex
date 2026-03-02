@@ -13,7 +13,7 @@
 </p>
 
 <p align="center">
-  <img src="https://img.shields.io/badge/Award-Google%20CheesHack%20Top%205-FFD700?style=for-the-badge&logo=google&logoColor=white" alt="Google CheesHack Top 5">
+  <img src="https://img.shields.io/badge/Award-Google%20CheesHack%202026%20Top%205-FFD700?style=for-the-badge&logo=google&logoColor=white" alt="Google CheesHack Top 5">
 </p>
 
 ---
