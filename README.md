@@ -14,7 +14,7 @@
 
 <p align="center">
   <a href="https://cheesehacks.devpost.com/project-gallery" target="_blank">
-    <img src="https://img.shields.io/badge/Award-Google%20CheesHack%202026%20Top%205-FFD700?style=for-the-badge&logo=google&logoColor=white" alt="Google CheesHack Top 5">
+    <img src="https://img.shields.io/badge/Award-Google%20CheesHack%202026%20Wild%20Card-FFD700?style=for-the-badge&logo=google&logoColor=white" alt="Google CheesHack Top 5">
   </a>
 </p>
 
