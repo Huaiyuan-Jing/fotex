@@ -1,4 +1,3 @@
-// Learn more about Tauri commands at https://tauri.app/develop/calling-rust/
 
 use regex::Regex;
 use reqwest::Client;
@@ -6,12 +5,11 @@ use serde::{Deserialize, Serialize};
 use std::fs;
 use std::path::{Path, PathBuf};
 use tauri_plugin_dialog::DialogExt;
-use tauri_plugin_shell::ShellExt; // 记得在文件顶部加上这一行
+use tauri_plugin_shell::ShellExt; 
 
 const OLLAMA_CHAT: &str = "http://desktop.tailf23c91.ts.net:11434/api/chat";
 const OLLAMA_MODEL: &str = "gemma3:12b";
 
-/// Use the crate root (src-tauri, where Cargo.toml and src/ live) so temp.tex/temp.pdf go there.
 fn src_tauri_dir() -> Result<PathBuf, String> {
     let output_dir = PathBuf::from(env!("CARGO_MANIFEST_DIR"));
     if !output_dir.exists() {
@@ -39,7 +37,6 @@ struct ReadTextFileResult {
     content: String,
 }
 
-/// Read arbitrary UTF-8 text file by path (for file tree / open).
 #[tauri::command]
 fn read_text_file(payload: ReadTextFilePayload) -> Result<ReadTextFileResult, String> {
     let content = fs::read_to_string(&payload.path).map_err(|e| e.to_string())?;
@@ -57,7 +54,6 @@ struct WriteTextFileResult {
     ok: bool,
 }
 
-/// Write text file (for save).
 #[tauri::command]
 fn write_text_file(payload: WriteTextFilePayload) -> Result<WriteTextFileResult, String> {
     fs::write(&payload.path, &payload.content).map_err(|e| e.to_string())?;
@@ -73,8 +69,6 @@ struct ReadTexResult {
     workspace_dir: Option<String>,
 }
 
-/// Read tex from src-tauri; returns default content if file does not exist.
-/// When main.tex exists, also returns its path and workspace dir so frontend can compile on first open.
 #[tauri::command]
 fn read_tex() -> Result<ReadTexResult, String> {
     let dir = src_tauri_dir()?;
@@ -118,9 +112,8 @@ fn read_pdf_base64(payload: ReadPdfPayload) -> Result<String, String> {
 async fn compile_latex(
     app_handle: tauri::AppHandle,
     content: String,
-    tex_path: Option<String>, // 关键：前端直接把当前的真实文件路径传过来
+    tex_path: Option<String>, 
 ) -> Result<String, String> {
-    // 1. 根据传入的路径，智能提取工作目录和真实文件名
     let (actual_tex_path, work_dir, file_name) = match tex_path {
         Some(path_str) if !path_str.trim().is_empty() => {
             let p = PathBuf::from(path_str);
@@ -178,9 +171,6 @@ struct OllamaResponse {
     message: OllamaMessage,
 }
 
-// ==========================================
-// 新增：拉取模型列表
-// ==========================================
 #[derive(Deserialize)]
 struct OllamaTagsResponse {
     models: Vec<OllamaModelTag>,
@@ -228,9 +218,6 @@ async fn ollama_list_models(base_url: String) -> Result<OllamaListModelsResult, 
     }
 }
 
-// ==========================================
-// 新增：动态模型生成
-// ==========================================
 #[derive(Serialize)]
 struct OllamaGenerateResult {
     text: String,
@@ -238,7 +225,7 @@ struct OllamaGenerateResult {
 
 #[tauri::command]
 async fn ollama_generate(
-    base_url: String, // 👈 新增参数
+    base_url: String,
     model: String,
     messages: Vec<Message>,
 ) -> Result<OllamaGenerateResult, String> {
@@ -249,7 +236,6 @@ async fn ollama_generate(
         model,
         messages,
         stream: false,
-        // ✨ 加入 options 突破长度限制，防止 \end{document} 被吞
         options: Some(OllamaOptions {
             num_predict: Some(8192), 
             temperature: Some(0.2),
@@ -341,19 +327,14 @@ async fn autocomplete_latex(prefix: String) -> Result<String, String> {
 }
 
 fn clean_output(s: &str) -> String {
-    // 1. 移除 <think> 标签及其内部所有内容
     let re_think = Regex::new(r"(?s)<think>.*?</think>").unwrap();
     let stripped = re_think.replace_all(s, "");
 
-    // 2. ✨ 终极正则：匹配开头，结尾可以是 ``` 也可以直接是字符串末尾 ($)
-    // \s*\n 确保剥离掉 ```latex 后面的换行符
     let re_code = Regex::new(r"(?s)```(?:latex|tex|txt)?\s*\n(.*?)(?:```|$)").unwrap();
 
     if let Some(caps) = re_code.captures(&stripped) {
-        // 如果找到了，安全提取并去除首尾空白
         caps.get(1).map_or(stripped.to_string(), |m| m.as_str().trim().to_string())
     } else {
-        // 3. 兜底逻辑：如果 AI 连开头的 ``` 都没写，手动削皮
         let mut res = stripped.trim();
         if res.starts_with("```") {
             res = res.trim_start_matches("```latex")
